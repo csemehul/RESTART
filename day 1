@@ -1,0 +1,86 @@
+#include <vector>
+#include <algorithm>
+#include <map>
+
+using namespace std;
+
+class Solution {
+private:
+    // Helper function to check if there's a cycle in the graph using DFS
+    bool dfsCycleCheck(int node, vector<vector<int>>& graph, vector<char>& color) {
+        color[node] = 1; // Mark the node as visiting
+        for (int neighbor : graph[node]) {
+            if (color[neighbor] == 0) {
+                if (dfsCycleCheck(neighbor, graph, color)) return true;
+            } else if (color[neighbor] == 1) {
+                return true; // Cycle found
+            }
+        }
+        color[node] = 2; // Mark the node as visited
+        return false;
+    }
+
+    // Function to find if there's a cycle in the graph
+    bool hasCycle(vector<vector<int>>& graph, int n) {
+        vector<char> color(n, 0); // 0: unvisited, 1: visiting, 2: visited
+        for (int i = 0; i < n; ++i) {
+            if (color[i] == 0 && dfsCycleCheck(i, graph, color)) return true;
+        }
+        return false;
+    }
+
+    // Helper function to perform topological sorting using DFS
+    void dfsTopologicalSort(int node, vector<vector<int>>& graph, vector<bool>& visited, vector<int>& result) {
+        visited[node] = true;
+        for (int neighbor : graph[node]) {
+            if (!visited[neighbor]) dfsTopologicalSort(neighbor, graph, visited, result);
+        }
+        result.push_back(node);
+    }
+
+    // Function to perform topological sorting on the graph
+    void topologicalSort(vector<vector<int>>& graph, int n, vector<int>& result) {
+        vector<bool> visited(n, false);
+        result.clear();
+        for (int i = 0; i < n; ++i) {
+            if (!visited[i]) dfsTopologicalSort(i, graph, visited, result);
+        }
+        reverse(result.begin(), result.end()); // Reverse to get the correct order
+    }
+
+public:
+    vector<vector<int>> buildMatrix(int k, vector<vector<int>>& rowConditions, vector<vector<int>>& colConditions) {
+        vector<vector<int>> rowGraph(k);
+        vector<vector<int>> colGraph(k);
+
+        // Build graphs from the conditions
+        for (auto& condition : rowConditions) {
+            rowGraph[condition[0] - 1].push_back(condition[1] - 1);
+        }
+        for (auto& condition : colConditions) {
+            colGraph[condition[0] - 1].push_back(condition[1] - 1);
+        }
+
+        // Check for cycles in both graphs
+        if (hasCycle(rowGraph, k) || hasCycle(colGraph, k)) return {};
+
+        // Perform topological sorting on both graphs
+        vector<int> rowOrder, colOrder;
+        topologicalSort(rowGraph, k, rowOrder);
+        topologicalSort(colGraph, k, colOrder);
+
+        // Map each element to its position in the column order
+        map<int, int> colPosition;
+        for (int i = 0; i < k; ++i) {
+            colPosition[colOrder[i]] = i;
+        }
+
+        // Build the result matrix
+        vector<vector<int>> result(k, vector<int>(k, 0));
+        for (int i = 0; i < k; ++i) {
+            result[i][colPosition[rowOrder[i]]] = rowOrder[i] + 1;
+        }
+
+        return result;
+    }
+};
